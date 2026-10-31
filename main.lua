@@ -1,18 +1,15 @@
--- Urban Reload | XENO FULL UI BUILD
--- Right Shift = toggle UI
--- Executor: Xeno (xeno.now)
+-- hyk | Urban Reload FULL KIT — fixed aimlock
+-- loadstring(game:HttpGet("https://raw.githubusercontent.com/userhykzz/rayq/main/main.lua"))()
 
 local Players          = game:GetService("Players")
 local RunService       = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService     = game:GetService("TweenService")
 
-local lp  = Players.LocalPlayer
-local cam = workspace.CurrentCamera
+local lp   = Players.LocalPlayer
+local cam  = workspace.CurrentCamera
+local mouse = lp:GetMouse()
 
--- ══════════════════════════════════════════════════════════════
---  CONFIG
--- ══════════════════════════════════════════════════════════════
 local CFG = {
     Aimbot    = true,
     AimPart   = "Head",
@@ -23,6 +20,8 @@ local CFG = {
     NoRecoil  = true,
     Speed     = false,
     SpeedVal  = 32,
+    -- anti-flicker: เป้าเดิมได้ priority bias นี้ (px)
+    SwitchBias = 80,
 }
 
 -- ══════════════════════════════════════════════════════════════
@@ -48,17 +47,15 @@ local ms = Instance.new("UIStroke", Main)
 ms.Color     = Color3.fromRGB(100, 50, 220)
 ms.Thickness = 1.5
 
--- title bar
 local TB = Instance.new("Frame")
-TB.Size            = UDim2.new(1, 0, 0, 38)
+TB.Size             = UDim2.new(1, 0, 0, 38)
 TB.BackgroundColor3 = Color3.fromRGB(100, 50, 220)
 TB.BorderSizePixel  = 0
 TB.Parent           = Main
 Instance.new("UICorner", TB).CornerRadius = UDim.new(0, 10)
--- fix bottom corners of title
 local tbfix = Instance.new("Frame")
-tbfix.Size            = UDim2.new(1, 0, 0, 10)
-tbfix.Position        = UDim2.new(0, 0, 1, -10)
+tbfix.Size             = UDim2.new(1, 0, 0, 10)
+tbfix.Position         = UDim2.new(0, 0, 1, -10)
 tbfix.BackgroundColor3 = Color3.fromRGB(100, 50, 220)
 tbfix.BorderSizePixel  = 0
 tbfix.Parent           = TB
@@ -67,7 +64,7 @@ local TL = Instance.new("TextLabel")
 TL.Size               = UDim2.new(1, -50, 1, 0)
 TL.Position           = UDim2.new(0, 12, 0, 0)
 TL.BackgroundTransparency = 1
-TL.Text               = "⚡  UR Kit  •  RShift"
+TL.Text               = "⚡  hyk  •  RShift"
 TL.TextColor3         = Color3.fromRGB(255, 255, 255)
 TL.TextSize           = 13
 TL.Font               = Enum.Font.GothamBold
@@ -87,7 +84,6 @@ MinBtn.BorderSizePixel   = 0
 MinBtn.Parent            = TB
 Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 6)
 
--- scroll
 local Scroll = Instance.new("ScrollingFrame")
 Scroll.Size                  = UDim2.new(1, 0, 1, -38)
 Scroll.Position              = UDim2.new(0, 0, 0, 38)
@@ -100,8 +96,8 @@ Scroll.AutomaticCanvasSize   = Enum.AutomaticSize.Y
 Scroll.Parent                = Main
 
 local ULL = Instance.new("UIListLayout", Scroll)
-ULL.Padding    = UDim.new(0, 0)
-ULL.SortOrder  = Enum.SortOrder.LayoutOrder
+ULL.Padding   = UDim.new(0, 0)
+ULL.SortOrder = Enum.SortOrder.LayoutOrder
 
 local UP = Instance.new("UIPadding", Scroll)
 UP.PaddingTop    = UDim.new(0, 6)
@@ -109,7 +105,6 @@ UP.PaddingLeft   = UDim.new(0, 10)
 UP.PaddingRight  = UDim.new(0, 10)
 UP.PaddingBottom = UDim.new(0, 8)
 
--- ── UI HELPERS ────────────────────────────────────────────────
 local ord = 0
 local function O() ord = ord + 1 return ord end
 
@@ -119,7 +114,6 @@ local function section(txt)
     f.BackgroundTransparency = 1
     f.LayoutOrder       = O()
     f.Parent            = Scroll
-
     local l = Instance.new("TextLabel", f)
     l.Size              = UDim2.new(1, 0, 0, 18)
     l.Position          = UDim2.new(0, 0, 0, 8)
@@ -129,7 +123,6 @@ local function section(txt)
     l.TextSize          = 10
     l.Font              = Enum.Font.GothamBold
     l.TextXAlignment    = Enum.TextXAlignment.Left
-
     local sep = Instance.new("Frame", f)
     sep.Size            = UDim2.new(1, 0, 0, 1)
     sep.Position        = UDim2.new(0, 0, 1, -1)
@@ -144,7 +137,6 @@ local function toggle(label, cfgKey, cb)
     row.BackgroundTransparency = 1
     row.LayoutOrder       = O()
     row.Parent            = Scroll
-
     local lbl = Instance.new("TextLabel", row)
     lbl.Size              = UDim2.new(1, -56, 1, 0)
     lbl.BackgroundTransparency = 1
@@ -153,7 +145,6 @@ local function toggle(label, cfgKey, cb)
     lbl.TextSize          = 12
     lbl.Font              = Enum.Font.Gotham
     lbl.TextXAlignment    = Enum.TextXAlignment.Left
-
     local track = Instance.new("Frame", row)
     track.Size            = UDim2.new(0, 42, 0, 20)
     track.Position        = UDim2.new(1, -42, 0.5, -10)
@@ -162,7 +153,6 @@ local function toggle(label, cfgKey, cb)
         or  Color3.fromRGB(45, 45, 55)
     track.BorderSizePixel = 0
     Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
-
     local knob = Instance.new("Frame", track)
     knob.Size             = UDim2.new(0, 14, 0, 14)
     knob.Position         = CFG[cfgKey]
@@ -171,12 +161,10 @@ local function toggle(label, cfgKey, cb)
     knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     knob.BorderSizePixel  = 0
     Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
-
     local btn = Instance.new("TextButton", row)
     btn.Size              = UDim2.new(1, 0, 1, 0)
     btn.BackgroundTransparency = 1
     btn.Text              = ""
-
     btn.MouseButton1Click:Connect(function()
         CFG[cfgKey] = not CFG[cfgKey]
         local on = CFG[cfgKey]
@@ -192,8 +180,6 @@ local function toggle(label, cfgKey, cb)
         }):Play()
         if cb then cb(on) end
     end)
-
-    return track, knob
 end
 
 local function slider(label, cfgKey, min, max, cb)
@@ -202,7 +188,6 @@ local function slider(label, cfgKey, min, max, cb)
     row.BackgroundTransparency = 1
     row.LayoutOrder       = O()
     row.Parent            = Scroll
-
     local lbl = Instance.new("TextLabel", row)
     lbl.Size              = UDim2.new(1, 0, 0, 18)
     lbl.BackgroundTransparency = 1
@@ -211,20 +196,17 @@ local function slider(label, cfgKey, min, max, cb)
     lbl.TextSize          = 12
     lbl.Font              = Enum.Font.Gotham
     lbl.TextXAlignment    = Enum.TextXAlignment.Left
-
     local track = Instance.new("Frame", row)
     track.Size            = UDim2.new(1, 0, 0, 5)
     track.Position        = UDim2.new(0, 0, 0, 30)
     track.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
     track.BorderSizePixel = 0
     Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
-
     local fill = Instance.new("Frame", track)
     fill.Size             = UDim2.new((CFG[cfgKey]-min)/(max-min), 0, 1, 0)
     fill.BackgroundColor3 = Color3.fromRGB(100, 50, 220)
     fill.BorderSizePixel  = 0
     Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
-
     local thumb = Instance.new("Frame", track)
     thumb.Size            = UDim2.new(0, 12, 0, 12)
     thumb.Position        = UDim2.new((CFG[cfgKey]-min)/(max-min), -6, 0.5, -6)
@@ -232,7 +214,6 @@ local function slider(label, cfgKey, min, max, cb)
     thumb.BorderSizePixel = 0
     thumb.ZIndex          = 2
     Instance.new("UICorner", thumb).CornerRadius = UDim.new(1, 0)
-
     local drag = false
     track.InputBegan:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = true end
@@ -244,9 +225,7 @@ local function slider(label, cfgKey, min, max, cb)
         if not drag then return end
         if i.UserInputType ~= Enum.UserInputType.MouseMovement then return end
         local rel = math.clamp(
-            (i.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X,
-            0, 1
-        )
+            (i.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
         local val = math.floor(min + rel * (max - min))
         CFG[cfgKey]    = val
         lbl.Text       = label .. ":  " .. val
@@ -256,15 +235,14 @@ local function slider(label, cfgKey, min, max, cb)
     end)
 end
 
--- ── BUILD SECTIONS ────────────────────────────────────────────
 section("🎯  aimbot")
-toggle("Aimbot", "Aimbot")
+toggle("Aimbot",     "Aimbot")
 toggle("Team Check", "TeamCheck")
 
 section("❤️  combat")
-toggle("God Mode", "GodMode")
+toggle("God Mode",      "GodMode")
 toggle("Infinite Ammo", "InfAmmo")
-toggle("No Recoil", "NoRecoil")
+toggle("No Recoil",     "NoRecoil")
 
 section("👟  movement")
 toggle("Speed Hack", "Speed", function(on)
@@ -280,13 +258,11 @@ slider("Walk Speed", "SpeedVal", 16, 150, function(val)
     end
 end)
 
--- ── DRAG ──────────────────────────────────────────────────────
+-- drag
 local dragUI, dragStart, dragOrigin = false, nil, nil
 TB.InputBegan:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragUI     = true
-        dragStart  = i.Position
-        dragOrigin = Main.Position
+        dragUI = true dragStart = i.Position dragOrigin = Main.Position
     end
 end)
 UserInputService.InputEnded:Connect(function(i)
@@ -298,38 +274,31 @@ UserInputService.InputChanged:Connect(function(i)
     local d = i.Position - dragStart
     Main.Position = UDim2.new(
         dragOrigin.X.Scale, dragOrigin.X.Offset + d.X,
-        dragOrigin.Y.Scale, dragOrigin.Y.Offset + d.Y
-    )
+        dragOrigin.Y.Scale, dragOrigin.Y.Offset + d.Y)
 end)
 
--- ── MINIMIZE ──────────────────────────────────────────────────
 local mini = false
 MinBtn.MouseButton1Click:Connect(function()
     mini = not mini
     TweenService:Create(Main, TweenInfo.new(0.18, Enum.EasingStyle.Quart), {
-        Size = mini
-            and UDim2.new(0, 280, 0, 38)
-            or  UDim2.new(0, 280, 0, 440)
+        Size = mini and UDim2.new(0,280,0,38) or UDim2.new(0,280,0,440)
     }):Play()
     MinBtn.Text = mini and "+" or "−"
 end)
 
--- ── RIGHT SHIFT TOGGLE ────────────────────────────────────────
 UserInputService.InputBegan:Connect(function(inp, gp)
     if gp then return end
     if inp.KeyCode == Enum.KeyCode.RightShift then
         local show = not Main.Visible
         if show then
             Main.Visible = true
-            Main.Size    = UDim2.new(0, 280, 0, 0)
-            TweenService:Create(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {
-                Size = mini
-                    and UDim2.new(0, 280, 0, 38)
-                    or  UDim2.new(0, 280, 0, 440)
+            Main.Size    = UDim2.new(0,280,0,0)
+            TweenService:Create(Main, TweenInfo.new(0.2,Enum.EasingStyle.Quart),{
+                Size = mini and UDim2.new(0,280,0,38) or UDim2.new(0,280,0,440)
             }):Play()
         else
-            TweenService:Create(Main, TweenInfo.new(0.15, Enum.EasingStyle.Quart), {
-                Size = UDim2.new(0, 280, 0, 0)
+            TweenService:Create(Main, TweenInfo.new(0.15,Enum.EasingStyle.Quart),{
+                Size = UDim2.new(0,280,0,0)
             }):Play()
             task.delay(0.16, function() Main.Visible = false end)
         end
@@ -337,31 +306,26 @@ UserInputService.InputBegan:Connect(function(inp, gp)
 end)
 
 -- ══════════════════════════════════════════════════════════════
---  GODMODE — Xeno layers
+--  GODMODE
 -- ══════════════════════════════════════════════════════════════
-local lastPos = Vector3.new(0, 10, 0)
+local lastPos = Vector3.new(0,10,0)
 local godConn
 
 local function startGod(char)
     if godConn then godConn:Disconnect() end
-    local hum  = char:WaitForChild("Humanoid", 5)
-    local root = char:WaitForChild("HumanoidRootPart", 5)
+    local hum  = char:WaitForChild("Humanoid",5)
+    local root = char:WaitForChild("HumanoidRootPart",5)
     if not hum or not root then return end
-
     pcall(function()
         local mt = getrawmetatable(hum)
-        setreadonly(mt, false)
-        local old_ni = rawget(mt, "__newindex")
-        mt.__newindex = function(t, k, v)
-            if t == hum and k == "Health" and
-               type(v) == "number" and v < hum.MaxHealth then
-                return
-            end
-            if old_ni then old_ni(t, k, v) else rawset(t, k, v) end
+        setreadonly(mt,false)
+        local old_ni = rawget(mt,"__newindex")
+        mt.__newindex = function(t,k,v)
+            if t==hum and k=="Health" and type(v)=="number" and v<hum.MaxHealth then return end
+            if old_ni then old_ni(t,k,v) else rawset(t,k,v) end
         end
-        setreadonly(mt, true)
+        setreadonly(mt,true)
     end)
-
     godConn = RunService.Heartbeat:Connect(function()
         if not CFG.GodMode then return end
         if not hum or not hum.Parent then return end
@@ -370,34 +334,28 @@ local function startGod(char)
         if hum:GetState() == Enum.HumanoidStateType.Dead then
             hum:ChangeState(Enum.HumanoidStateType.GettingUp)
         end
-        if hum.Health > 0 and root.Parent then
-            lastPos = root.Position
-        end
+        if hum.Health > 0 and root.Parent then lastPos = root.Position end
     end)
 end
 
 lp.CharacterAdded:Connect(function(char)
-    task.wait(0.15)
-    startGod(char)
+    task.wait(0.15) startGod(char)
     task.wait(0.05)
     local root = char:FindFirstChild("HumanoidRootPart")
-    if root then root.CFrame = CFrame.new(lastPos + Vector3.new(0, 3, 0)) end
+    if root then root.CFrame = CFrame.new(lastPos+Vector3.new(0,3,0)) end
 end)
 if lp.Character then task.spawn(function() startGod(lp.Character) end) end
 
 -- ══════════════════════════════════════════════════════════════
 --  INFINITE AMMO
 -- ══════════════════════════════════════════════════════════════
-local ammoKW = {
-    "ammo","magazine","mag","bullet","clip","round",
-    "chamber","loaded","reserve","currentammo","shots","capacity"
-}
+local ammoKW = {"ammo","magazine","mag","bullet","clip","round",
+                "chamber","loaded","reserve","currentammo","shots","capacity"}
 local function isAmmoVal(n)
     local l = n:lower()
-    for _, k in ipairs(ammoKW) do if l:find(k) then return true end end
+    for _,k in ipairs(ammoKW) do if l:find(k) then return true end end
     return false
 end
-
 local ammoConns = {}
 local watched   = {}
 
@@ -407,7 +365,7 @@ local function hookTool(tool)
     local function tryH(v)
         if not (v:IsA("IntValue") or v:IsA("NumberValue")) then return end
         if not isAmmoVal(v.Name) then return end
-        local mx = math.max(v.Value, 1)
+        local mx = math.max(v.Value,1)
         table.insert(ammoConns, v.Changed:Connect(function(nv)
             if not CFG.InfAmmo then return end
             if nv < mx then task.defer(function()
@@ -416,27 +374,14 @@ local function hookTool(tool)
             elseif nv > mx then mx = nv end
         end))
     end
-    for _, v in ipairs(tool:GetDescendants()) do tryH(v) end
+    for _,v in ipairs(tool:GetDescendants()) do tryH(v) end
     table.insert(ammoConns, tool.DescendantAdded:Connect(function(v)
         task.wait(0.05) tryH(v)
     end))
-    for _, v in ipairs(tool:GetDescendants()) do
-        if v:IsA("RemoteEvent") then
-            local nm = v.Name:lower()
-            if nm:find("reload") or nm:find("ammo") or nm:find("refill") then
-                task.spawn(function()
-                    while tool and tool.Parent and CFG.InfAmmo do
-                        pcall(function() v:FireServer() end)
-                        task.wait(3)
-                    end
-                end)
-            end
-        end
-    end
 end
 
 local function watchTools(char)
-    for _, t in ipairs(char:GetChildren()) do
+    for _,t in ipairs(char:GetChildren()) do
         if t:IsA("Tool") then hookTool(t) end
     end
     char.ChildAdded:Connect(function(c)
@@ -449,12 +394,12 @@ end
 if lp.Character then watchTools(lp.Character) end
 lp.CharacterAdded:Connect(function(char)
     task.wait(0.15) watched = {}
-    for _, c in ipairs(ammoConns) do c:Disconnect() end
+    for _,c in ipairs(ammoConns) do c:Disconnect() end
     ammoConns = {} watchTools(char)
 end)
 
 -- ══════════════════════════════════════════════════════════════
---  AIMBOT
+--  AIMBOT — FIXED: mouse crosshair + anti-flicker bias
 -- ══════════════════════════════════════════════════════════════
 local holding      = false
 local locked       = nil
@@ -469,26 +414,32 @@ end
 local function sameTeam(p)
     return CFG.TeamCheck and p.Team ~= nil and p.Team == lp.Team
 end
+
+-- ── FIX CORE: วัดจาก mouse position ไม่ใช่ center จอ ─────────
 local function screenDist(part)
     local sp, on = cam:WorldToViewportPoint(part.Position)
-    if not on then return math.huge end
-    return (Vector2.new(sp.X, sp.Y) - cam.ViewportSize / 2).Magnitude
+    -- Z < 0 = อยู่หลังกล้อง
+    if not on or sp.Z < 0 then return math.huge end
+    local mx = mouse.X
+    local my = mouse.Y
+    return math.sqrt((sp.X - mx)^2 + (sp.Y - my)^2)
 end
 
+-- predict loop
 RunService.Heartbeat:Connect(function()
-    for _, p in ipairs(Players:GetPlayers()) do
+    for _,p in ipairs(Players:GetPlayers()) do
         if p == lp then continue end
         local c    = p.Character
         local head = c and c:FindFirstChild(CFG.AimPart)
         if not head then predictedPos[p] = nil continue end
         local now  = tick()
         local prev = velCache[p]
-        velCache[p] = { pos = head.Position, t = now }
+        velCache[p] = {pos=head.Position, t=now}
         if prev then
             local dt = now - prev.t
             if dt > 0 and dt < 0.5 then
                 predictedPos[p] = head.Position +
-                    (head.Position - prev.pos) / dt * (CFG.PredictMS / 1000)
+                    (head.Position-prev.pos)/dt * (CFG.PredictMS/1000)
             else
                 predictedPos[p] = head.Position
             end
@@ -498,23 +449,45 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
+-- ── FIXED getBest: anti-flicker bias ─────────────────────────
 local function getBest()
-    local best, bd, bestP = nil, 9999, nil
-    for _, p in ipairs(Players:GetPlayers()) do
+    local best, bd, bestP = nil, math.huge, nil
+
+    -- bias เป้าที่ lock อยู่แล้ว
+    if locked then
+        local owner = Players:GetPlayerFromCharacter(locked.Parent)
+        if owner and isAlive(owner) and not sameTeam(owner) then
+            local d = screenDist(locked)
+            if d < math.huge then
+                best  = locked
+                -- หัก SwitchBias ออก = ต้องใกล้กว่านี้ถึงจะเปลี่ยน
+                bd    = d - CFG.SwitchBias
+                bestP = owner
+            end
+        else
+            locked = nil
+        end
+    end
+
+    for _,p in ipairs(Players:GetPlayers()) do
         if p ~= lp and isAlive(p) and not sameTeam(p) then
             local c    = p.Character
             local head = c and c:FindFirstChild(CFG.AimPart)
             if head then
                 local d = screenDist(head)
-                if d < bd then best = head bd = d bestP = p end
+                if d < bd then
+                    best  = head
+                    bd    = d
+                    bestP = p
+                end
             end
         end
     end
     return best, bestP
 end
 
-local bn = "x_" .. math.random(10000, 99999)
-RunService:BindToRenderStep(bn, Enum.RenderPriority.Last.Value + 9999, function()
+local bn = "x_"..math.random(10000,99999)
+RunService:BindToRenderStep(bn, Enum.RenderPriority.Last.Value+9999, function()
     if cam.CameraType ~= Enum.CameraType.Custom then
         cam.CameraType = Enum.CameraType.Custom
     end
@@ -525,7 +498,7 @@ RunService:BindToRenderStep(bn, Enum.RenderPriority.Last.Value + 9999, function(
     cam.CFrame = CFrame.new(cam.CFrame.Position, predictedPos[owner] or head.Position)
 end)
 
-UserInputService.InputBegan:Connect(function(i, g)
+UserInputService.InputBegan:Connect(function(i,g)
     if g then return end
     if i.UserInputType == Enum.UserInputType.MouseButton2 then holding = true end
 end)
@@ -540,26 +513,25 @@ end)
 -- ══════════════════════════════════════════════════════════════
 local rfiring  = false
 local smoothCF = cam.CFrame
-local rb       = "r_" .. math.random(10000, 99999)
+local rb       = "r_"..math.random(10000,99999)
 
-UserInputService.InputBegan:Connect(function(i, g)
+UserInputService.InputBegan:Connect(function(i,g)
     if g then return end
     if i.UserInputType == Enum.UserInputType.MouseButton1 then
-        rfiring  = true
-        smoothCF = cam.CFrame
+        rfiring = true smoothCF = cam.CFrame
     end
 end)
 UserInputService.InputEnded:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 then rfiring = false end
 end)
 
-RunService:BindToRenderStep(rb, Enum.RenderPriority.Camera.Value + 1, function()
+RunService:BindToRenderStep(rb, Enum.RenderPriority.Camera.Value+1, function()
     if not CFG.NoRecoil or not rfiring then smoothCF = cam.CFrame return end
     local cur    = cam.CFrame
-    local dP     = math.asin(math.clamp(cur.LookVector.Y, -1, 1)) -
-                   math.asin(math.clamp(smoothCF.LookVector.Y, -1, 1))
+    local dP     = math.asin(math.clamp(cur.LookVector.Y,-1,1)) -
+                   math.asin(math.clamp(smoothCF.LookVector.Y,-1,1))
     if dP > 0.002 then
-        cam.CFrame = CFrame.new(cur.Position) * CFrame.Angles(-dP, 0, 0) * cur
+        cam.CFrame = CFrame.new(cur.Position)*CFrame.Angles(-dP,0,0)*cur
     end
     smoothCF = cam.CFrame
 end)
