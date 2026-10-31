@@ -430,77 +430,237 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ── MISC ─────────────────────────────────────────────────────
-makeSection("⚙  MISC")
+-- aimbot section replacement — paste แทน section AIMBOT เดิมทั้งหมด
+-- หรือจะเอาไปแทนใน main.lua ก็ได้
 
-makeToggle("Anti-AFK",true,function(s)
-    if s then
-        local vrs=game:GetService("VirtualUser")
-        lp.Idled:Connect(function()
-            vrs:Button2Down(Vector2.zero,Camera.CFrame)
-            task.wait(1)
-            vrs:Button2Up(Vector2.zero,Camera.CFrame)
-        end)
+-- ── AIMBOT ───────────────────────────────────────────────────
+makeSection("🎯  AIMBOT")
+
+local AB = {
+    on        = true,
+    smooth    = 0.18,
+    fov       = 120,
+    hitpart   = "Head",
+    teamcheck = true,
+    lockKey   = Enum.KeyCode.E,   -- default: E กด ค้างเพื่อ lock
+    holding   = false,
+}
+
+-- FOV circle
+local circle
+pcall(function()
+    circle              = Drawing.new("Circle")
+    circle.Visible      = true
+    circle.Radius       = AB.fov
+    circle.Color        = Color3.fromRGB(255,60,120)
+    circle.Thickness    = 1.5
+    circle.Filled       = false
+    circle.Transparency = 1
+end)
+
+-- lock key label (แสดงบน UI)
+local lockKeyNames = {
+    [Enum.KeyCode.E]          = "E",
+    [Enum.KeyCode.R]          = "R",
+    [Enum.KeyCode.T]          = "T",
+    [Enum.KeyCode.X]          = "X",
+    [Enum.KeyCode.Z]          = "Z",
+    [Enum.KeyCode.LeftAlt]    = "LAlt",
+    [Enum.KeyCode.RightAlt]   = "RAlt",
+    [Enum.KeyCode.CapsLock]   = "Caps",
+    [Enum.KeyCode.V]          = "V",
+    [Enum.KeyCode.G]          = "G",
+}
+
+-- ── LOCK KEY PICKER ROW ──────────────────────────────────────
+local keyRow = Instance.new("Frame")
+keyRow.Size              = UDim2.new(0,256,0,40)
+keyRow.BackgroundColor3  = Color3.fromRGB(25,25,32)
+keyRow.BorderSizePixel   = 0
+keyRow.Parent            = content
+Instance.new("UICorner",keyRow).CornerRadius = UDim.new(0,7)
+
+local keyLblLeft = Instance.new("TextLabel")
+keyLblLeft.Size              = UDim2.new(0,130,1,0)
+keyLblLeft.Position          = UDim2.new(0,12,0,0)
+keyLblLeft.BackgroundTransparency = 1
+keyLblLeft.Text              = "Lock Key:"
+keyLblLeft.TextColor3        = Color3.fromRGB(220,220,220)
+keyLblLeft.TextSize          = 13
+keyLblLeft.Font              = Enum.Font.Gotham
+keyLblLeft.TextXAlignment    = Enum.TextXAlignment.Left
+keyLblLeft.Parent            = keyRow
+
+local keyBtn = Instance.new("TextButton")
+keyBtn.Size              = UDim2.new(0,90,0,28)
+keyBtn.Position          = UDim2.new(1,-98,0.5,-14)
+keyBtn.BackgroundColor3  = Color3.fromRGB(255,60,120)
+keyBtn.BorderSizePixel   = 0
+keyBtn.Text              = "[ E ]"
+keyBtn.TextColor3        = Color3.white
+keyBtn.TextSize          = 13
+keyBtn.Font              = Enum.Font.GothamBold
+keyBtn.Parent            = keyRow
+Instance.new("UICorner",keyBtn).CornerRadius = UDim.new(0,6)
+
+-- bind mode
+local binding = false
+keyBtn.MouseButton1Click:Connect(function()
+    binding = true
+    keyBtn.Text = "[ ... ]"
+    keyBtn.BackgroundColor3 = Color3.fromRGB(180,40,80)
+end)
+
+UserInputService.InputBegan:Connect(function(inp, gpe)
+    if binding then
+        -- accept any KeyCode
+        if inp.UserInputType == Enum.UserInputType.Keyboard then
+            AB.lockKey = inp.KeyCode
+            local name = lockKeyNames[inp.KeyCode] or inp.KeyCode.Name
+            keyBtn.Text = "[ "..name.." ]"
+            keyBtn.BackgroundColor3 = Color3.fromRGB(255,60,120)
+            binding = false
+            notify("Lock Key", "set to "..name)
+        end
+        return
     end
-    notify("Anti-AFK",s and "ON ✓" or "OFF")
 end)
 
-makeToggle("FullBright",false,function(s)
-    local L=game:GetService("Lighting")
-    L.Brightness=s and 2 or 1
-    if s then L.ClockTime=14 end
-    L.GlobalShadows=not s
-    L.FogEnd=s and 1e6 or 10000
-    notify("FullBright",s and "ON ✓" or "OFF")
+-- ── TOGGLES & SLIDERS ────────────────────────────────────────
+local _,setABToggle = makeToggle("Aimbot", true, function(s)
+    AB.on = s
+    if circle then circle.Visible = s end
+    notify("Aimbot", s and "ON ✓" or "OFF")
 end)
 
-makeToggle("Infinite Jump",false,function(s)
-    if s then
-        UserInputService.JumpRequest:Connect(function()
-            if lp.Character then
-                local hum=lp.Character:FindFirstChildOfClass("Humanoid")
-                if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+makeToggle("Team Check", true, function(s) AB.teamcheck = s end)
+
+-- hitpart selector row
+local hitRow = Instance.new("Frame")
+hitRow.Size              = UDim2.new(0,256,0,40)
+hitRow.BackgroundColor3  = Color3.fromRGB(25,25,32)
+hitRow.BorderSizePixel   = 0
+hitRow.Parent            = content
+Instance.new("UICorner",hitRow).CornerRadius = UDim.new(0,7)
+
+local hitLbl = Instance.new("TextLabel")
+hitLbl.Size              = UDim2.new(0,100,1,0)
+hitLbl.Position          = UDim2.new(0,12,0,0)
+hitLbl.BackgroundTransparency = 1
+hitLbl.Text              = "Target:"
+hitLbl.TextColor3        = Color3.fromRGB(220,220,220)
+hitLbl.TextSize          = 13
+hitLbl.Font              = Enum.Font.Gotham
+hitLbl.TextXAlignment    = Enum.TextXAlignment.Left
+hitLbl.Parent            = hitRow
+
+local hitParts   = {"Head","UpperTorso","HumanoidRootPart"}
+local hitIdx     = 1
+
+local hitBtn = Instance.new("TextButton")
+hitBtn.Size              = UDim2.new(0,120,0,28)
+hitBtn.Position          = UDim2.new(1,-128,0.5,-14)
+hitBtn.BackgroundColor3  = Color3.fromRGB(50,50,60)
+hitBtn.BorderSizePixel   = 0
+hitBtn.Text              = hitParts[hitIdx]
+hitBtn.TextColor3        = Color3.white
+hitBtn.TextSize          = 12
+hitBtn.Font              = Enum.Font.Gotham
+hitBtn.Parent            = hitRow
+Instance.new("UICorner",hitBtn).CornerRadius = UDim.new(0,6)
+hitBtn.MouseButton1Click:Connect(function()
+    hitIdx = hitIdx % #hitParts + 1
+    AB.hitpart = hitParts[hitIdx]
+    hitBtn.Text = hitParts[hitIdx]
+    notify("Target", AB.hitpart)
+end)
+
+makeSlider("FOV", 30, 400, 120, function(v)
+    AB.fov = v
+    if circle then circle.Radius = v end
+end)
+
+makeSlider("Smooth (x10)", 1, 30, 2, function(v)
+    AB.smooth = v / 10
+end)
+
+-- ── HELPERS ──────────────────────────────────────────────────
+local function isEnemy(p)
+    if not AB.teamcheck then return true end
+    return p.Team ~= lp.Team
+end
+
+local function isAlive(p)
+    local c = p.Character
+    if not c then return false end
+    local h = c:FindFirstChildOfClass("Humanoid")
+    return h and h.Health > 0
+end
+
+local function getTarget(cx, cy)
+    local best, bd = nil, math.huge
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= lp and isAlive(p) and isEnemy(p) then
+            local char = p.Character
+            -- try hitpart first, fallback chain
+            local part = char:FindFirstChild(AB.hitpart)
+                      or char:FindFirstChild("Head")
+                      or char:FindFirstChild("HumanoidRootPart")
+            if part then
+                local sp, vis = Camera:WorldToViewportPoint(part.Position)
+                if vis then
+                    local d = Vector2.new(sp.X-cx, sp.Y-cy).Magnitude
+                    if d < AB.fov and d < bd then
+                        best, bd = part, d
+                    end
+                end
             end
-        end)
-    end
-    notify("Inf Jump",s and "ON ✓" or "OFF")
-end)
-
--- ════════════════════════════════════════════════════════════
---  UI TOGGLE KEYBIND — RightShift (customisable)
--- ════════════════════════════════════════════════════════════
-local TOGGLE_KEY = Enum.KeyCode.RightShift
-
--- smooth tween open/close
-local tweenOpen  = TweenService:Create(main,
-    TweenInfo.new(0.2,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
-    {Size=UDim2.new(0,280,0,360), BackgroundTransparency=0}
-)
-local tweenClose = TweenService:Create(main,
-    TweenInfo.new(0.15,Enum.EasingStyle.Quad,Enum.EasingDirection.In),
-    {Size=UDim2.new(0,280,0,0), BackgroundTransparency=1}
-)
-
-local uiOpen = true
-UserInputService.InputBegan:Connect(function(inp,gpe)
-    if gpe then return end
-    if inp.KeyCode==TOGGLE_KEY then
-        uiOpen=not uiOpen
-        if uiOpen then
-            main.Visible=true
-            tweenOpen:Play()
-        else
-            tweenClose:Play()
-            tweenClose.Completed:Wait()
-            main.Visible=false
         end
     end
+    return best
+end
+
+-- ── LOCK STATE ───────────────────────────────────────────────
+-- track hold state manually — supports any key
+local lockHeld = false
+
+UserInputService.InputBegan:Connect(function(inp, gpe)
+    if binding then return end
+    if gpe then return end
+    if inp.KeyCode == AB.lockKey then
+        lockHeld = true
+    end
+    if inp.KeyCode == Enum.KeyCode.Q then
+        AB.on = not AB.on
+        setABToggle(AB.on)
+        if circle then circle.Visible = AB.on end
+        notify("Aimbot", AB.on and "ON ✓" or "OFF")
+    end
 end)
 
--- ── ANTI-DETECT: randomise loop timing ───────────────────────
--- wrap RenderStepped in pcall so any error doesn't leak
-local _origRS = RunService.RenderStepped
--- already connected above — just ensure no unhandled errors surface
+UserInputService.InputEnded:Connect(function(inp)
+    if inp.KeyCode == AB.lockKey then
+        lockHeld = false
+    end
+end)
 
--- ── STARTUP ──────────────────────────────────────────────────
-print("[userhykzz] loaded — RShift = show/hide UI")
-notify("userhykzz","loaded ✓  |  RShift = show/hide")
+-- ── MAIN LOOP ────────────────────────────────────────────────
+RunService.RenderStepped:Connect(function()
+    -- update FOV circle center
+    if circle then
+        local vp = Camera.ViewportSize
+        circle.Position = Vector2.new(vp.X/2, vp.Y/2)
+        circle.Visible  = AB.on
+    end
+
+    if not AB.on then return end
+    if not lockHeld then return end       -- hold lock key to aim
+
+    local vp = Camera.ViewportSize
+    local t  = getTarget(vp.X/2, vp.Y/2)
+    if not t then return end
+
+    -- smooth lerp to target
+    local targetCF = CFrame.new(Camera.CFrame.Position, t.Position)
+    Camera.CFrame  = Camera.CFrame:Lerp(targetCF, AB.smooth)
+end)
